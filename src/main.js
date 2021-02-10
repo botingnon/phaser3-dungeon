@@ -2,6 +2,7 @@ import Phaser from "phaser";
 
 import Preloader from "./scenes/Preloader";
 import Game from "./scenes/Game";
+import GameUi from "./scenes/GameUi";
 
 export default new Phaser.Game({
   type: Phaser.AUTO,
@@ -17,5 +18,5 @@ export default new Phaser.Game({
   scale: {
     zoom: 2,
   },
-  scene: [Preloader, Game],
+  scene: [Preloader, Game, GameUi],
 });

@@ -6,9 +6,14 @@ import { createCharacterAnims } from "../anims/CharacterAnims";
 
 import Lizard from "../enemies/Lizard";
 
+import "../chatacter/Faune";
+import Faune from "../chatacter/Faune";
+
+import { eventsCenter } from "../events/EventsCenter";
+
 export default class Game extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private faune!: Phaser.Physics.Arcade.Sprite;
+  private faune!: Faune;
 
   constructor() {
     super("game");
@@ -19,6 +24,8 @@ export default class Game extends Phaser.Scene {
   }
 
   create() {
+    this.scene.run("game-ui");
+
     createLizardAnims(this.anims);
     createCharacterAnims(this.anims);
 
@@ -31,11 +38,7 @@ export default class Game extends Phaser.Scene {
     wallslayer.setCollisionByProperty({ collides: true });
 
     debugDraw(wallslayer, this);
-
-    this.faune = this.physics.add.sprite(128, 128, "faune", "walk-down-3.png");
-    this.faune.body.setSize(this.faune.width * 0.5, this.faune.height * 0.8);
-
-    this.faune.anims.play("faune-idle-down");
+    this.faune = this.add.faune(128, 128, "faune");
 
     this.cameras.main.startFollow(this.faune, true);
 
@@ -51,35 +54,35 @@ export default class Game extends Phaser.Scene {
 
     this.physics.add.collider(this.faune, wallslayer);
     this.physics.add.collider(lizards, wallslayer);
+
+    this.physics.add.collider(
+      lizards,
+      this.faune,
+      this.handlePlayerLizardCollision,
+      undefined,
+      this
+    );
+  }
+
+  private handlePlayerLizardCollision(
+    obj1: Phaser.GameObjects.GameObject,
+    obj2: Phaser.GameObjects.GameObject
+  ) {
+    const lizard = obj2 as Lizard;
+
+    const dx = this.faune.x - lizard.x;
+    const dy = this.faune.y - lizard.y;
+
+    const dir = new Phaser.Math.Vector2(dx, dy).normalize().scale(200);
+
+    this.faune.handlerDamage(dir);
+
+    eventsCenter.emit("player-health-chenged", this.faune.health);
   }
 
   update(t: number, dt: number) {
-    if (!this.cursors || !this.faune) {
-      return;
-    }
-
-    const speed = 100;
-    if (this.cursors.left?.isDown) {
-      this.faune.setVelocity(-speed, 0);
-      this.faune.anims.play("faune-run-side", true);
-      this.faune.scaleX = -1;
-      this.faune.body.offset.x = 24;
-    } else if (this.cursors.right?.isDown) {
-      this.faune.setVelocity(speed, 0);
-      this.faune.anims.play("faune-run-side", true);
-      this.faune.scaleX = 1;
-      this.faune.body.offset.x = 8;
-    } else if (this.cursors.up?.isDown) {
-      this.faune.setVelocity(0, -speed);
-      this.faune.anims.play("faune-run-up", true);
-    } else if (this.cursors.down?.isDown) {
-      this.faune.setVelocity(0, speed);
-      this.faune.anims.play("faune-run-down", true);
-    } else {
-      const parts = this.faune.anims.currentAnim.key.split("-");
-      parts[1] = "idle";
-      this.faune.setVelocity(0, 0);
-      this.faune.anims.play(parts.join("-"));
+    if (this.faune) {
+      this.faune.update(this.cursors);
     }
   }
 }
