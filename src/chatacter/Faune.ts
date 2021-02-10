@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 
+import Chest from "../items/Chest";
+
+import { eventsCenter } from "../events/EventsCenter";
+
 declare global {
   namespace Phaser.GameObjects {
     interface GameObjectFactory {
@@ -17,7 +21,7 @@ enum HealthState {
 export default class Faune extends Phaser.Physics.Arcade.Sprite {
   private healthState = HealthState.IDLE;
   private damageTime = 0;
-
+  private _coins = 0;
   private _health = 3;
 
   get health() {
@@ -25,6 +29,7 @@ export default class Faune extends Phaser.Physics.Arcade.Sprite {
   }
 
   private knives: Phaser.Physics.Arcade.Group;
+  private activeChest?: Chest;
 
   constructor(
     scene: Phaser.Scene,
@@ -40,6 +45,10 @@ export default class Faune extends Phaser.Physics.Arcade.Sprite {
 
   setKnives(knives: Phaser.Physics.Arcade.Group) {
     this.knives = knives;
+  }
+
+  setChest(chest: Chest) {
+    this.activeChest = chest;
   }
 
   handlerDamage(dir: Phaser.Math.Vector2) {
@@ -141,25 +150,35 @@ export default class Faune extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (Phaser.Input.Keyboard.JustDown(cursors.space!)) {
-      this.throwKnive();
+      if (this.activeChest) {
+        this._coins += this.activeChest.open();
+        eventsCenter.emit("player-coins-changed", this._coins);
+      } else {
+        this.throwKnive();
+      }
       return;
     }
 
     const speed = 100;
-    if (cursors.left?.isDown) {
+    const leftDown = cursors.left?.isDown;
+    const rightDown = cursors.right?.isDown;
+    const upDown = cursors.up?.isDown;
+    const downDown = cursors.down?.isDown;
+
+    if (leftDown) {
       this.setVelocity(-speed, 0);
       this.anims.play("faune-run-side", true);
       this.scaleX = -1;
       this.body.offset.x = 24;
-    } else if (cursors.right?.isDown) {
+    } else if (rightDown) {
       this.setVelocity(speed, 0);
       this.anims.play("faune-run-side", true);
       this.scaleX = 1;
       this.body.offset.x = 8;
-    } else if (cursors.up?.isDown) {
+    } else if (upDown) {
       this.setVelocity(0, -speed);
       this.anims.play("faune-run-up", true);
-    } else if (cursors.down?.isDown) {
+    } else if (downDown) {
       this.setVelocity(0, speed);
       this.anims.play("faune-run-down", true);
     } else {
@@ -167,6 +186,10 @@ export default class Faune extends Phaser.Physics.Arcade.Sprite {
       parts[1] = "idle";
       this.setVelocity(0, 0);
       this.anims.play(parts.join("-"));
+    }
+
+    if (leftDown || rightDown || upDown || downDown) {
+      this.activeChest = undefined;
     }
   }
 }

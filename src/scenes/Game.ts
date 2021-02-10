@@ -3,11 +3,13 @@ import Phaser from "phaser";
 import { debugDraw } from "../utils/debug";
 import { createLizardAnims } from "../anims/EnemyAnims";
 import { createCharacterAnims } from "../anims/CharacterAnims";
+import { createChestAnims } from "../anims/TreasureAnims";
 
 import Lizard from "../enemies/Lizard";
 
 import "../chatacter/Faune";
 import Faune from "../chatacter/Faune";
+import Chest from "../items/Chest";
 
 import { eventsCenter } from "../events/EventsCenter";
 
@@ -31,6 +33,7 @@ export default class Game extends Phaser.Scene {
 
     createLizardAnims(this.anims);
     createCharacterAnims(this.anims);
+    createChestAnims(this.anims);
 
     const map = this.make.tilemap({ key: "dungeon" });
     const tileset = map.addTilesetImage("dungeon", "tiles", 16, 16, 1, 2);
@@ -44,6 +47,18 @@ export default class Game extends Phaser.Scene {
     const wallslayer = map.createLayer("Walls", tileset);
 
     wallslayer.setCollisionByProperty({ collides: true });
+
+    const chests = this.physics.add.staticGroup({
+      classType: Chest,
+    });
+    const chestsLayer = map.getObjectLayer("Chests");
+    chestsLayer.objects.forEach((chestObj) => {
+      chests.get(
+        chestObj.x! + chestObj.width! * 0.5,
+        chestObj.y! - chestObj.height! * 0.5,
+        "treasure"
+      );
+    });
 
     debugDraw(wallslayer, this);
     this.faune = this.add.faune(128, 128, "faune");
@@ -61,6 +76,13 @@ export default class Game extends Phaser.Scene {
 
     this.lizards.get(256, 128, "lizard");
 
+    this.physics.add.collider(
+      this.faune,
+      chests,
+      this.handlePlayerChestCollision,
+      undefined,
+      this
+    );
     this.physics.add.collider(this.faune, wallslayer);
     this.physics.add.collider(this.lizards, wallslayer);
 
@@ -121,6 +143,14 @@ export default class Game extends Phaser.Scene {
     if (this.faune.health <= 0) {
       this.playerLizerdsCollider?.destroy();
     }
+  }
+
+  private handlePlayerChestCollision(
+    obj1: Phaser.GameObjects.GameObject,
+    obj2: Phaser.GameObjects.GameObject
+  ) {
+    const chest = obj2 as Chest;
+    this.faune.setChest(chest);
   }
 
   update(t: number, dt: number) {
