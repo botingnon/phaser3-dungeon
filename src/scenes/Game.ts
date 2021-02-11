@@ -42,6 +42,7 @@ export default class Game extends Phaser.Scene {
 
     this.knives = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
+      maxSize: 3,
     });
 
     const wallslayer = map.createLayer("Walls", tileset);
@@ -60,7 +61,8 @@ export default class Game extends Phaser.Scene {
       );
     });
 
-    debugDraw(wallslayer, this);
+    // debugDraw(wallslayer, this);
+
     this.faune = this.add.faune(128, 128, "faune");
     this.faune.setKnives(this.knives);
 
@@ -74,7 +76,14 @@ export default class Game extends Phaser.Scene {
       },
     });
 
-    this.lizards.get(256, 128, "lizard");
+    const lizardLayers = map.getObjectLayer("Lizards");
+    lizardLayers.objects.forEach((lizObj) => {
+      this.lizards.get(
+        lizObj.x! + lizObj.width! * 0.5,
+        lizObj.y! - lizObj.height! * 0.5,
+        "lizard"
+      );
+    });
 
     this.physics.add.collider(
       this.faune,
@@ -85,6 +94,7 @@ export default class Game extends Phaser.Scene {
     );
     this.physics.add.collider(this.faune, wallslayer);
     this.physics.add.collider(this.lizards, wallslayer);
+    this.physics.add.collider(this.lizards, chests);
 
     this.physics.add.collider(
       this.knives,
